@@ -30,6 +30,7 @@ if (cluster.isMaster) {
       });
     });
   };
+
   const baseUrl = "https://firebasehosting.googleapis.com/v1beta1";
   let siteUrl = null;
   let serviceAccountAbsolutePath = null;
@@ -38,6 +39,21 @@ if (cluster.isMaster) {
   let firebaseConfigPath = null;
   let firebaseConfig = null;
   const cores = cpus().length;
+  const finalize = async () => {
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`
+    };
+
+    const data = { status: "FINALIZED" };
+
+    const options = {
+      headers: headers,
+      body: data
+    };
+
+    return await axios.post(versionUrl, options);
+  };
   const deploy = async (
     serviceAccountPath: string,
     token: string,
@@ -108,6 +124,7 @@ if (cluster.isMaster) {
       });
     }
     await Promise.all(clusters);
+    await finalize();
   };
 
   /*
@@ -241,6 +258,10 @@ returns
             };
 
             await axios.post(uploadUrl, uploadOptions);
+            process.send("FINISH");
+            setTimeout(() => {
+              process.exit(0);
+            });
           }
         }
       }
